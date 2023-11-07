@@ -1,0 +1,26 @@
+{
+  "name": "netlify-monorepo-template",
+  "version": "0.0.0",
+  "description": "",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "netlify dev --filter client",
+    "build": "netlify build --filter client",
+    "deploy-preview": "netlify deploy --filter client --alias=dev",
+    "deploy-prod": "netlify deploy --filter client --prod"
+  },
+  "author": "",
+  "license": "ISC",
+  "workspaces": [
+    "backend",
+    "client"
+  ],
+  "devDependencies": {
+    "@types/node": "^20.8.9",
+    "netlify-cli": "^16.9.3",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
+  }
+}
