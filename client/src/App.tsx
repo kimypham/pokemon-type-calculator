@@ -1,15 +1,19 @@
-import {Button} from "@/components/shadcn/ui/button.tsx";
-import { ThemeProvider } from "@/components/shadcn/ui/theme-provider.tsx";
-import {ModeToggle} from "@/components/shadcn/ui/mode-toggle.tsx";
-import {useMutation} from "@tanstack/react-query";
-import {Form, FormControl, FormItem, FormLabel} from "./components/shadcn/ui/form";
-import {FormField} from "@/components/shadcn/ui/form.tsx";
-import {Input} from "@/components/shadcn/ui/input.tsx";
-import {useForm} from "react-hook-form";
+import { useForm } from "react-hook-form";
 import axios from "axios";
-import {Badge} from "@/components/shadcn/ui/badge.tsx";
-import { Icons } from "./components/shadcn/ui/icon";
-
+import {
+    Badge,
+    Button,
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    Icons,
+    Input,
+    ModeToggle,
+    ThemeProvider
+} from "@/components/shadcn/ui";
+import { useEffect, useState } from "react";
 
 function App() {
     return (
@@ -62,38 +66,59 @@ interface IType {
 
 
 function PokemonSearch() {
-    const form = useForm<{name: string}>(
+    const [pokemonData, setPokemonData] = useState<IPokemon>()
+    const [typeData, setTypeData] = useState<IType>()
+    const [isLoading, setIsLoading] = useState<boolean>(false)
+    const [notFoundError, setNotFoundError] = useState<boolean>(false)
+    const form = useForm<{ name: string }>(
         {defaultValues: {name: ""}}
     )
 
-    async function onSubmit(values: { name: string }) {
-        console.log(values.name)
-        mutatePokemon(values.name)
-        mutateType("test")
-        // {pokemonData?.types.map(async (pokemon) => await mutateType(pokemon.type.name))}
-
+    const getPokemonData = (pokemonName: string) => {
+        axios.get('https://pokeapi.co/api/v2/pokemon/' + pokemonName)
+            .then((response) => {
+                setPokemonData(response.data)
+            })
+            .catch((error) => {
+                if (error.response.status == 404) {
+                    console.log(error)
+                    setNotFoundError(true)
+                } else {
+                    console.error(error)
+                }
+            })
+            .finally(() => {
+                setIsLoading(false)
+            })
     }
 
-    const {data: retrievedPokemonData, mutate: mutatePokemon, isPending ,isError: isErrorPokemon} = useMutation({
-        mutationFn: (pokemonName: string) => {
-            console.log("i sent")
-            return axios.get('https://pokeapi.co/api/v2/pokemon/' + pokemonName)
+    const getTypeData = (pokemonType: string) => {
+        console.log(pokemonType)
+        axios.get('https://pokeapi.co/api/v2/type/' + pokemonType)
+            .then((response) => {
+                setTypeData(response.data)
+            })
+            .catch((error) => {
+                console.error(error)
+            })
+    }
+
+    useEffect(() => {
+        pokemonData?.types.map(async (pokemon) => getTypeData(pokemon.type.name))
+    }, [pokemonData]);
+
+    async function onSubmit(values: { name: string }) {
+        if (pokemonData) {
+            setPokemonData(undefined)
         }
-    })
-
-    const {data: retrievedTypeData, mutate: mutateType} = useMutation({
-        mutationFn: (pokemonType: string) => {
-            console.log("i sent2", pokemonType)
-            return axios.get('https://pokeapi.co/api/v2/type/normal')
-        }
-    })
-
-    console.log(retrievedPokemonData?.data)
-    console.log("retrievedTypeData",retrievedTypeData?.data)
+        setTypeData(undefined)
+        setNotFoundError(false)
+        console.log(values.name)
 
 
-    const pokemonData: IPokemon = retrievedPokemonData?.data
-    const typeData: IType = retrievedTypeData?.data
+        setIsLoading(true)
+        getPokemonData(values.name)
+    }
 
     let pokemonName: string = ""
     if (pokemonData) {
@@ -101,10 +126,12 @@ function PokemonSearch() {
     }
 
     const pokemonSprite = () => {
-        if (pokemonData.sprites.versions?.["generation-v"]["black-white"].animated.front_default) {
-        return <img src={pokemonData.sprites.versions?.["generation-v"]["black-white"].animated.front_default} className="h-32 w-32 p-5"/>
+        if (pokemonData?.sprites.versions?.["generation-v"]["black-white"].animated.front_default) {
+            return <img src={pokemonData?.sprites.versions?.["generation-v"]["black-white"].animated.front_default}
+                        className="h-32 w-32 p-5" alt={"sprite of " + pokemonName}/>
         } else {
-            return <img src={pokemonData.sprites.front_default} className="h-40 w-40 rendering-pixelated"/>
+            return <img src={pokemonData?.sprites.front_default} className="h-40 w-40 rendering-pixelated"
+                        alt={"sprite of " + pokemonName}/>
         }
     }
 
@@ -117,7 +144,7 @@ function PokemonSearch() {
                         <FormField
                             control={form.control}
                             name="name"
-                            render={({ field }) => (
+                            render={({field}) => (
                                 <FormItem>
                                     <FormLabel>Search for a Pokemon</FormLabel>
                                     <div className="flex">
@@ -127,23 +154,23 @@ function PokemonSearch() {
                                         <Button type="submit">Search</Button>
                                     </div>
                                 </FormItem>
-
                             )}
                         />
                     </form>
                 </Form>
             </div>
-            { isPending &&
+            {isLoading &&
                 <div className="flex">
-                    <Icons.spinner className="h-5 w-5 animate-spin"/><div className="pl-2">Loading...</div>
+                    <Icons.spinner className="h-5 w-5 animate-spin"/>
+                    <div className="pl-2">Loading...</div>
                 </div>
             }
-            { isErrorPokemon &&
+            {notFoundError &&
                 <div>
                     <p>Pokemon doesn't exist</p>
                 </div>
             }
-            { pokemonData &&
+            {pokemonData &&
                 <div className="flex">
                     <div className="w-1/2 mr-2 text-center justify-center">
                         <h2>{pokemonName}</h2>
@@ -151,7 +178,8 @@ function PokemonSearch() {
                             {pokemonSprite()}
                         </div>
                         <div className="flex justify-center">
-                            {pokemonData?.types.map((pokemon) => <p key={pokemon.type.name}><Badge>{pokemon.type.name.toUpperCase()}</Badge></p>)}
+                            {pokemonData?.types.map((pokemon, i) => <div key={"type" + i}>
+                                <Badge>{pokemon.type.name.toUpperCase()}</Badge></div>)}
                         </div>
                     </div>
 
@@ -162,38 +190,45 @@ function PokemonSearch() {
                                 <p>Use these types on {pokemonName}!</p>
                                 <p>takes 2x damage from</p>
                                 <div className="flex">
-                                    {typeData?.damage_relations.double_damage_from.map((type) => <p><Badge>{type.name.toUpperCase()}</Badge></p>)}
+                                    {typeData?.damage_relations.double_damage_from.map((type, i) => <div
+                                        key={"double_damage_from" + i}><Badge>{type.name.toUpperCase()}</Badge></div>)}
                                 </div>
                                 <p>takes 1x damage from</p>
                                 <p>TODO</p>
-                                { typeData?.damage_relations.half_damage_from &&
+                                {typeData?.damage_relations.half_damage_from &&
                                     <div>
                                         <p>takes 1⁄2x damage from</p>
                                         <div className="flex">
-                                            {typeData?.damage_relations.half_damage_from.map((type) => <p><Badge>{type.name.toUpperCase()}</Badge></p>)}
+                                            {typeData?.damage_relations.half_damage_from.map((type, i) => <div
+                                                key={"half_damage_from" + i}><Badge>{type.name.toUpperCase()}</Badge>
+                                            </div>)}
                                         </div>
                                     </div>
                                 }
                                 <p>does not effect</p>
                                 <div className="flex">
-                                    {typeData?.damage_relations.no_damage_from.map((type) => <p><Badge>{type.name.toUpperCase()}</Badge></p>)}
+                                    {typeData?.damage_relations.no_damage_from.map((type, i) => <div
+                                        key={"no_damage_from" + i}><Badge>{type.name.toUpperCase()}</Badge></div>)}
                                 </div>
                             </div>
                             <h1 className="font-bold">Strong against / Offense</h1>
                             <p>Use {pokemonData?.types.map((pokemon) => pokemon.type.name)} moves on these types!</p>
                             <p>does 2x damage to</p>
                             <div className="flex">
-                                {typeData?.damage_relations.double_damage_to.map((type) => <p><Badge>{type.name.toUpperCase()}</Badge></p>)}
+                                {typeData?.damage_relations.double_damage_to.map((type, i) => <div
+                                    key={"double_damage_to" + i}><Badge>{type.name.toUpperCase()}</Badge></div>)}
                             </div>
                             <p>does 1x damage to</p>
                             <p>TODO</p>
                             <p>does 1⁄2x damage to</p>
                             <div className="flex">
-                                {typeData?.damage_relations.half_damage_to.map((type) => <p><Badge>{type.name.toUpperCase()}</Badge></p>)}
+                                {typeData?.damage_relations.half_damage_to.map((type, i) => <div
+                                    key={"half_damage_to" + i}><Badge>{type.name.toUpperCase()}</Badge></div>)}
                             </div>
                             <p>immune to</p>
                             <div className="flex">
-                                {typeData?.damage_relations.no_damage_to.map((type) => <p><Badge>{type.name.toUpperCase()}</Badge></p>)}
+                                {typeData?.damage_relations.no_damage_to.map((type, i) => <div key={"no_damage_to" + i}>
+                                    <Badge>{type.name.toUpperCase()}</Badge></div>)}
                             </div>
                         </div>
                     }
