@@ -64,12 +64,66 @@ interface IType {
     }
 }
 
+interface IDamage {
+    normal: number,
+    fire: number,
+    water: number,
+    grass: number,
+    electric: number,
+    ice: number,
+    fighting: number,
+    poison: number,
+    ground: number,
+    flying: number,
+    physic: number,
+    bug: number,
+    rock: number,
+    ghost: number,
+    dragon: number,
+    dark: number,
+    steel: number,
+    fairy: number
+}
+
+const initialDamageArray: IDamage = {
+    "normal": 1,
+    "fire": 1,
+    "water": 1,
+    "grass": 1,
+    "electric": 1,
+    "ice": 1,
+    "fighting": 1,
+    "poison": 1,
+    "ground": 1,
+    "flying": 1,
+    "physic": 1,
+    "bug": 1,
+    "rock": 1,
+    "ghost": 1,
+    "dragon": 1,
+    "dark": 1,
+    "steel": 1,
+    "fairy": 1
+}
+
+interface IListDamage {
+    4: string[],
+    2: string[],
+    0.5: string[],
+    0.25: string[],
+    0: string[]
+}
+
 
 function PokemonSearch() {
     const [pokemonData, setPokemonData] = useState<IPokemon>()
     const [typeData, setTypeData] = useState<IType>()
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [notFoundError, setNotFoundError] = useState<boolean>(false)
+    const [takeDamageArray, setTakeDamageArray] = useState<IDamage>({...initialDamageArray})
+    const [giveDamageArray, setGiveDamageArray] = useState<IDamage>({...initialDamageArray})
+
+    const [takeDamageList, setTakeDamageList] = useState<IListDamage>()
     const form = useForm<{ name: string }>(
         {defaultValues: {name: ""}}
     )
@@ -96,6 +150,39 @@ function PokemonSearch() {
         console.log(pokemonType)
         axios.get('https://pokeapi.co/api/v2/type/' + pokemonType)
             .then((response) => {
+                console.log(response.data)
+                let newTakeDamageArray: IDamage = takeDamageArray
+                let newGiveDamageArray: IDamage = giveDamageArray
+                const typeData: IType = response.data
+
+                typeData.damage_relations.double_damage_from.map((type) => {
+                    // console.log("type.name * 2", type.name, takeDamageArray[type.name as keyof IDamage], takeDamageArray[type.name as keyof IDamage] * 2)
+                    newTakeDamageArray[type.name as keyof IDamage] = takeDamageArray[type.name as keyof IDamage] * 2
+                })
+                typeData.damage_relations.half_damage_from.map((type) => {
+                    // console.log("type.name / 2", type.name, takeDamageArray[type.name as keyof IDamage], takeDamageArray[type.name as keyof IDamage] / 2)
+                    newTakeDamageArray[type.name as keyof IDamage] = takeDamageArray[type.name as keyof IDamage] / 2
+                })
+                typeData.damage_relations.no_damage_from.map((type) => {
+                    // console.log("type.name * 0", type.name, takeDamageArray[type.name as keyof IDamage])
+                    newTakeDamageArray[type.name as keyof IDamage] = 0
+                })
+
+                typeData.damage_relations.double_damage_to.map((type) => {
+                    newGiveDamageArray[type.name as keyof IDamage] = giveDamageArray[type.name as keyof IDamage] * 2
+                })
+                typeData.damage_relations.half_damage_to.map((type) => {
+                    newGiveDamageArray[type.name as keyof IDamage] = giveDamageArray[type.name as keyof IDamage] / 2
+                })
+                typeData.damage_relations.no_damage_to.map((type) => {
+                    newGiveDamageArray[type.name as keyof IDamage] = 0
+                })
+
+
+                // console.log("newTakeDamageArray", newTakeDamageArray)
+                // console.log("newGiveDamageArray", newGiveDamageArray)
+                // setTakeDamageArray(newTakeDamageArray) // looks like we dont need this??
+                // setGiveDamageArray(newGiveDamageArray)
                 setTypeData(response.data)
             })
             .catch((error) => {
@@ -104,20 +191,37 @@ function PokemonSearch() {
     }
 
     useEffect(() => {
-        pokemonData?.types.map(async (pokemon) => getTypeData(pokemon.type.name))
+        // test()
+        pokemonData?.types.map((pokemon) => getTypeData(pokemon.type.name))
+        console.log("final", takeDamageArray)
+        const test = takeDamageArray
+        console.log("test", test)
+
+        // setTakeDamageArray({...initialDamageArray})
+        // console.log("takeDamageArray", takeDamageArray)
+
+        // for (const property in test) {
+        //     // console.log(takeDamageArray)
+        //     console.log(`${property}: ${test[property as keyof IDamage]}`);
+        // }
+        console.log(Object.values(test))
+        console.log(JSON.parse(JSON.stringify(test)))
     }, [pokemonData]);
 
     async function onSubmit(values: { name: string }) {
-        if (pokemonData) {
+        if (pokemonData?.name.toLowerCase() != values.name.toLowerCase()) {
             setPokemonData(undefined)
+            setTakeDamageArray({...initialDamageArray})
+            setGiveDamageArray({...initialDamageArray})
+
+            setTypeData(undefined)
+            setNotFoundError(false)
+            console.log(values.name)
+
+
+            setIsLoading(true)
+            getPokemonData(values.name)
         }
-        setTypeData(undefined)
-        setNotFoundError(false)
-        console.log(values.name)
-
-
-        setIsLoading(true)
-        getPokemonData(values.name)
     }
 
     let pokemonName: string = ""
