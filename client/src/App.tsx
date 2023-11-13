@@ -173,8 +173,6 @@ function PokemonSearch() {
     currentTakeDamageArray: IDamage,
     currentGiveDamageArray: IDamage
   ) => {
-    // const newTakeDamageArray:IDamage = {...currentTakeDamageArray};
-
     typeData.damage_relations.double_damage_from.forEach((type) => {
       currentTakeDamageArray[type.name as keyof IDamage] =
         currentTakeDamageArray[type.name as keyof IDamage] * 2;
@@ -201,63 +199,33 @@ function PokemonSearch() {
   };
 
   useEffect(() => {
-    // I add this check so that when you reload the page (when the pokemonData is empty) the calculation would not run
-    if (pokemonData) {
-      // I changed to this to ensure the initial array always correct --> if you use state it could get contaminated when u request on different pokemons
-      const currentTakeDamageArray: IDamage = JSON.parse(
-        JSON.stringify(initialDamageArray)
-      );
-      const currentGiveDamageArray = JSON.parse(
-        JSON.stringify(initialDamageArray)
-      );
+    const runMe = async () => {
+      if (pokemonData) {
+        const currentTakeDamageArray: IDamage = { ...initialDamageArray };
+        const currentGiveDamageArray: IDamage = { ...initialDamageArray };
 
-      pokemonData?.types.forEach(async (pokemon) => {
-        const typeData = await getTypeData(pokemon.type.name);
-        if (typeData) {
-          // I added this
-          calculateDamage(
-            typeData,
-            currentTakeDamageArray,
-            currentGiveDamageArray
-          );
-        }
-        // U gotta set it here to make sure the set state is setting after the calculation is done <3
-        setTakeDamageArray(currentTakeDamageArray);
-        setGiveDamageArray(currentGiveDamageArray);
-      });
-    }
-  }, [pokemonData]);
+        // Add promise all here to wait properly
+        await Promise.all(
+          pokemonData?.types.map(async (pokemon) => {
+            const typeData = await getTypeData(pokemon.type.name);
+            if (typeData) {
+              calculateDamage(
+                typeData,
+                currentTakeDamageArray,
+                currentGiveDamageArray
+              );
+            }
 
-  //i added this baby <3
-  // anything for my loving baby
-  // YOU CAN DO IT BABY!!!!!!!!!!
-  // I BELIEVE IN YOUUUUUUUUUUUUUU <3<3<3<3
-  // I AM HAPPY TO HELP YOU OUT
-  useEffect(() => {
-    // This one here so that the first initial load wouldn't trigger this --> Less console log
-    if (pokemonData) {
-      interface Effectiveness {
-        [key: number]: string[];
+            // setTakeDamageArray(currentTakeDamageArray);
+            // setGiveDamageArray(currentGiveDamageArray);
+          })
+        );
+
+        console.log(currentTakeDamageArray.rock);
       }
-
-      const takeEffectiveness: Effectiveness = {};
-
-      Object.keys(takeDamageArray).forEach((type) => {
-        const effectiveness = takeDamageArray[type as keyof IDamage];
-
-        const toUpdateEffectiveness = takeEffectiveness[effectiveness];
-
-        if (toUpdateEffectiveness) {
-          toUpdateEffectiveness.push(type);
-        } else {
-          takeEffectiveness[effectiveness] = [type];
-        }
-      });
-      // Prolly do teh same for giveDamageArray --> then we will clean up later
-      console.log(takeEffectiveness);
-      console.log(JSON.stringify(takeEffectiveness));
-    }
-  }, [takeDamageArray]);
+    };
+    runMe();
+  }, [pokemonData]);
 
   async function onSubmit(values: { name: string }) {
     if (pokemonData?.name.toLowerCase() != values.name.toLowerCase()) {
