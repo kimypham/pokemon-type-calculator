@@ -1,17 +1,27 @@
-import { ModeToggle, ThemeProvider } from "@/components/shadcn/ui";
+import { ThemeProvider } from "@/components/shadcn/ui";
 import React from "react";
-import PokemonCalculator from "@/components/PokemonCalculator.tsx";
+import { Offense } from "./pages/Offense";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Defense } from "@/pages/Defense.tsx";
+import { About } from "@/pages/About.tsx";
+import { NavigationBar } from "@/components/NavigationBar.tsx";
 
 function App() {
     return (
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-            <div className="p-8">
-                <h1 className="text-4xl font-extrabold text-center dark:text-white">
-                    Pokemon Type Calculator
-                </h1>
-                <ModeToggle/>
-                <PokemonCalculator/>
-            </div>
+            <BrowserRouter>
+                <NavigationBar/>
+                <Routes>
+                    <Route>
+                        <Route path={"defense"} element={<Defense/>}/>
+                        <Route path={"offense"} element={<Offense/>}/>
+                        <Route path={"about"} element={<About/>}/>
+                        <Route path={"/"} element={<About/>}/>
+                        <Route path={"*"} element={<About/>}/>
+                    </Route>
+                </Routes>
+            </BrowserRouter>
+            {/*<PokemonCalculator/>*/}
         </ThemeProvider>
     );
 }
